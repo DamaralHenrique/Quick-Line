@@ -11,19 +11,74 @@ db = mysql.connect(
 
 cursor = db.cursor()
 
-# def getAtracoesDisp():  #Pega atrações que não estão lotadas - Connection.py
+def getDispDeAtracao(Nome, Data):
+    query = "select ID_Horario, count(quicklinebd.reserva.ID_Ingresso) as reservas from quicklinebd.reserva \
+                LEFT JOIN quicklinebd.atracao on quicklinebd.atracao.Nome_Atracao=quicklinebd.reserva.Nome_Atracao \
+                INNER JOIN quicklinebd.ingresso on quicklinebd.ingresso.ID_Ingresso=quicklinebd.reserva.ID_Ingresso \
+                where (quicklinebd.atracao.Nome_Atracao=\'"+str(Nome)+"\') and (Data=\'"+str(Data)+"\') \
+                GROUP BY ID_Horario and quicklinebd.atracao.Nome_Atracao and Data;"
+    cursor.execute(query)
+    lotacoes = cursor.fetchall()
+
+    horarios = getHorarios()
+
+    horarios_list = list(horarios)
+
+    i = 0
+    for hor in horarios_list:
+        horarios_list[i] = list(hor)
+        horarios_list[i].append(0)
+        i += 1
+
+    i = 0
+    for horario in horarios_list:
+        horarios_list[i][3] = 0
+        for lotacao in lotacoes: 
+            if(lotacao[0] == horario[0]):
+                horarios_list[i][3] = lotacao[1]
+        i += 1
+    print(horarios_list)
+    return(horarios_list)
 
 # def createIngresso(data, cpf, idtipo):  #Cria o ingresso com os dados devidos - Connection.py
 
-#  def getAtracao(nome):  #Mostra os dados da atração [nome] - Connection.py
+def getAtracoes():
+    query = "select Nome_Atracao from Atracao"
+    cursor.execute(query)
+    atracoes = cursor.fetchall()
+    return(atracoes)
 
-# def getIngresso(id)   #Pega ingressos com o id dado - Connection.py
+def getAtracao(nome):  #Mostra os dados da atração [nome] - Connection.py
+    query = "select * from Atracao where Nome_Atracao=\'"+str(nome)+"\'"
+    cursor.execute(query)
+    atracao = cursor.fetchall()
+    return(atracao[0])
 
-#  def getHorarios()   #Pega todos os horários - Connection.py
+def getIngresso(id):   #Pega ingressos com o id dado - Connection.py
+    query = "select ID_Ingresso, Nome, Descricao, Valor, Data   from quicklinebd.Ingresso \
+            INNER JOIN quicklinebd.Cliente on quicklinebd.Cliente.cpf=quicklinebd.Ingresso.cpf \
+            INNER JOIN quicklinebd.tipoingresso on quicklinebd.tipoingresso.ID_TipoIngresso=quicklinebd.Ingresso.ID_Tipo \
+            where ID_Ingresso=\'"+str(id)+"\'"
+    cursor.execute(query)
+    ingresso = cursor.fetchall()
+    return(ingresso[0])
 
-# def createReserva(id_ingresso, id_horario, nome_atracao)  #Cria a reserva com os dados devidos - Connection.py
+def getHorarios():   #Pega todos os horários - Connection.py
+    query = "select * from quicklinebd.horario"
+    cursor.execute(query)
+    horario = cursor.fetchall()
+    return(horario)
 
-# def getIngressosWithCPF(cpf)   #Pega ingressos com o cpf dado - Connection.py
+# def createReserva(id_ingresso, id_horario, nome_atracao):  #Cria a reserva com os dados devidos - Connection.py
+
+def getIngressosWithCPF(cpf):   #Pega ingressos com o cpf dado - Connection.py
+    query = "select ID_Ingresso, Nome, Descricao, Valor, Data   from quicklinebd.Ingresso \
+            INNER JOIN quicklinebd.Cliente on quicklinebd.Cliente.cpf=quicklinebd.Ingresso.cpf \
+            INNER JOIN quicklinebd.tipoingresso on quicklinebd.tipoingresso.ID_TipoIngresso=quicklinebd.Ingresso.ID_Tipo \
+            where ingresso.cpf=\'"+str(cpf)+"\'"
+    cursor.execute(query)
+    ingressos = cursor.fetchall()
+    return(ingressos)
 
 def getClienteByCPF(CPF):
     query = "select * from Cliente where CPF="+str(CPF)
@@ -88,7 +143,13 @@ def main():
     # print(getClienteByCPF(1))
     # print(loginCliente("RR", "BD_S2"))
     # print(getReservasByCPFAndDia(2,'11/04/2022'))
-    print(getIngressosVendidosByTipo(2))
+    # print(getIngressosVendidosByTipo(2))
+    # print(getAtracao("Montanha-Russa"))
+    # print(getIngresso(3))
+    # print(getHorarios())
+    # print(getIngressosWithCPF(1))
+    # print(getAtracoes())
+    print(getDispDeAtracao("Roda Gigante", "11/04/2022"))
     print("EOT")
     return
 

@@ -27,14 +27,39 @@ def criaReserva(id_ingresso, id_horario, nome_atracao):
     # createReserva(id_ingresso, id_horario, nome_atracao)  #Cria a reserva com os dados devidos - Connection.py
     return
 
-def mostraIngressos(cpf):
-    # ingressos = getIngressosWithCPF(cpf)   #Pega ingressos com o cpf dado - Connection.py
-    # print(ingressos)
+def mostraIngressos(ingressos):
+    if(len(ingressos) == 0):
+        print("Você não possui ingressos :(")
+    else:
+        print("Seus ingressos:")
+        print("   TIPO     VALOR   DATA        CÓDIGO")
+        for ingresso in ingressos:
+            print("-> "+'{0:<8}'.format(str(ingresso[2]))+" R$"+str(ingresso[3])+"  "+str(ingresso[4])+"  "+str(ingresso[0]))
     return
 
-def TelaCliente(cpfCliente):
-    # convidado = getClienteByCPF(cpfCliente)
-    # return convidado
+def mostraDisponibilidade(horarios, atracao):
+    if(len(horarios) == 0):
+        print("Não há horários disponíveis para essa atração :(")
+    else:
+        print("Seus ingressos:")
+        print("     ABERTURA     FECHAMENTO   LOTAÇÃO ATUAL")
+        i = 0
+        for horario in horarios:
+            print('{0:>2}'.format(str(i))+". "+'{0:<12}'.format(str(horario[1][0:5]))+" "+'{0:<12}'.format(str(horario[2][0:5]))+"  "+str(horario[3])+"/"+str(atracao[2]))
+            i += 1
+    return
+
+def mostraAtracoes(Atracoes):
+    if(len(Atracoes) == 0):
+        print("Não há atracoes para serem mostradas :(")
+    else:
+        print("Atrações disponíveis:")
+        print("    NOME")
+        i = 1
+        for atracao in Atracoes:
+            print('{0:>2}'.format(str(i))+". "+str(atracao[0]))
+            i += 1
+        print(" q. Voltar")
     return
 
 def reserva(nome):
@@ -81,23 +106,28 @@ def consulta5():
     print("A atração " + str(nome) + " ficou lotada no dia " + str(data) + " nos seguintes horários:")
     print(lista)
 
-def inicioCliente(nome, cpf):
-    print("Bem-vindo(a) " + str(nome))
+def inicioCliente(cpf):
+    cliente = getClienteByCPF(cpf)
+    print("Bem-vindo(a) " + str(cliente[1]))
     op = 0
     while op != 3:
-        print("Escolha o que deseja fazer:\n 1. Consultar atrações disponíveis para reserva \n 2. Consultar seus ingressos válidos \n 3. Encerrar sessão")
+        print("Escolha o que deseja fazer:\n 1. Consultar atrações disponíveis para reserva \n 2. Consultar seus ingressos \n 3. Encerrar sessão")
         op = input("Opção: ")
         if op == "1":
-            imprimeAtracoesDisponiveis()
-            boo = input("Deseja selecionar alguma atração[y/n]? ")
-            if boo == 'y':
-                atrac = input("Atração escolhida: ")
-                apresentaAtracao(atrac)
-                boo = input("Deseja fazer a reseva[y/n]?" )
-                if boo == 'y':
-                    reserva(atrac)
+            atracoes = getAtracoes()
+            mostraAtracoes(atracoes)
+            boo = input("Selecione uma atração: ")
+            if boo == 'q':
+                print("Retornando...")
+            elif int(boo)-1 < len(atracoes):
+                print("Você escolheu a atração "+str(atracoes[int(boo)-1][0]))
+                atracao = getAtracao(atracoes[int(boo)-1][0])
+                data = input("Deseja saber sobre qual data? (DD/MM/AAAA) ")
+                horarios = getDispDeAtracao(atracao[0], str(data))
+                mostraDisponibilidade(horarios,atracao)
         elif op == "2":
-            mostraIngressos(cpf)
+            ingressos = getIngressosWithCPF(cpf)
+            mostraIngressos(ingressos)
         elif op == "3":
             print("Encerrando sessão...")
     return                    
@@ -145,8 +175,8 @@ def main():
         if resp == "1":
             cpf = input("Digite seu CPF: ")
             senha = input("Digite sua senha: ")
-            nome = TelaCliente(cpf)
-            inicioCliente(nome, cpf)
+            # nome = TelaCliente(cpf)
+            inicioCliente(cpf)
 
 
         elif resp == "2":

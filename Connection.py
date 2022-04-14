@@ -11,12 +11,45 @@ db = mysql.connect(
 
 cursor = db.cursor()
 
+def cadastraCliente(cpf, nome, senha):
+    query = "INSERT INTO quicklinebd.cliente (CPF, Nome, Senha) VALUES \
+            (%s, %s, %s);"
+    val = (str(cpf), str(nome), str(senha))
+    cursor.execute(query, val)
+    db.commit()
+    print("Cliente cadastrado!")
+
+def cadastraIngresso(data, cpf, idTipo, idIngresso):
+    query = "INSERT INTO ingresso (ID_Ingresso, Data, CPF, ID_Tipo) VALUES \
+            (%s, %s, %s, %s);"
+    val = ( str(idIngresso), str(data), str(cpf), str(idTipo))
+    cursor.execute(query, val)
+    db.commit()
+    print("Ingresso cadastradado!")
+
+def cadastraReserva(ID_ingresso, ID_Horario, Nome_Atracao):
+    query = "INSERT INTO reserva (ID_Ingresso, ID_Horario, Nome_Atracao) VALUES \
+            (%s, %s, %s);"
+    val = (str(ID_ingresso), str(ID_Horario), str(Nome_Atracao))
+    cursor.execute(query, val)
+    db.commit()
+    print("Reserva cadastradada!")
+
+def alteraSenha(cpf_cliente, nova_senha):
+    query = "UPDATE cliente \
+             SET Senha = %s \
+             WHERE CPF = %s"
+    val = (nova_senha, cpf_cliente)
+    cursor.execute(query, val)
+    db.commit()
+    print("Senha alterada!")
+
 def getDispDeAtracao(Nome, Data):
     query = "select ID_Horario, count(quicklinebd.reserva.ID_Ingresso) as reservas from quicklinebd.reserva \
                 LEFT JOIN quicklinebd.atracao on quicklinebd.atracao.Nome_Atracao=quicklinebd.reserva.Nome_Atracao \
                 INNER JOIN quicklinebd.ingresso on quicklinebd.ingresso.ID_Ingresso=quicklinebd.reserva.ID_Ingresso \
                 where (quicklinebd.atracao.Nome_Atracao=\'"+str(Nome)+"\') and (Data=\'"+str(Data)+"\') \
-                GROUP BY ID_Horario and quicklinebd.atracao.Nome_Atracao and Data;"
+                GROUP BY ID_Horario , quicklinebd.atracao.Nome_Atracao , Data;"
     cursor.execute(query)
     lotacoes = cursor.fetchall()
 
@@ -37,10 +70,7 @@ def getDispDeAtracao(Nome, Data):
             if(lotacao[0] == horario[0]):
                 horarios_list[i][3] = lotacao[1]
         i += 1
-    print(horarios_list)
     return(horarios_list)
-
-# def createIngresso(data, cpf, idtipo):  #Cria o ingresso com os dados devidos - Connection.py
 
 def getAtracoes():
     query = "select Nome_Atracao from Atracao"
@@ -49,7 +79,7 @@ def getAtracoes():
     return(atracoes)
 
 def getAtracao(nome):  #Mostra os dados da atração [nome] - Connection.py
-    query = "select * from Atracao where Nome_Atracao=\'"+str(nome)+"\'"
+    query = "select * from atracao where Nome_Atracao=\'"+str(nome)+"\'"
     cursor.execute(query)
     atracao = cursor.fetchall()
     return(atracao[0])
@@ -69,6 +99,11 @@ def getHorarios():   #Pega todos os horários - Connection.py
     horario = cursor.fetchall()
     return(horario)
 
+def getClientes():
+    query = "select * from Cliente"
+    cursor.execute(query)
+    return cursor.fetchall()
+
 # def createReserva(id_ingresso, id_horario, nome_atracao):  #Cria a reserva com os dados devidos - Connection.py
 
 def getIngressosWithCPF(cpf):   #Pega ingressos com o cpf dado - Connection.py
@@ -80,23 +115,32 @@ def getIngressosWithCPF(cpf):   #Pega ingressos com o cpf dado - Connection.py
     ingressos = cursor.fetchall()
     return(ingressos)
 
+def getIngressosPremiumWithCPF(cpf):   #Pega ingressos com o cpf dado - Connection.py
+    query = "select ID_Ingresso, Nome, Descricao, Valor, Data   from quicklinebd.Ingresso \
+            INNER JOIN quicklinebd.Cliente on quicklinebd.Cliente.cpf=quicklinebd.Ingresso.cpf \
+            INNER JOIN quicklinebd.tipoingresso on quicklinebd.tipoingresso.ID_TipoIngresso=quicklinebd.Ingresso.ID_Tipo \
+            where ingresso.cpf=\'"+str(cpf)+"\' and ID_Tipo=2"
+    cursor.execute(query)
+    ingressos = cursor.fetchall()
+    return(ingressos)
+
 def getClienteByCPF(CPF):
     query = "select * from Cliente where CPF="+str(CPF)
     cursor.execute(query)
     cliente = cursor.fetchall()
     return(cliente[0])
 
-def loginCliente(Nome, Senha):
-    query = "select CPF from cliente where Nome=\'"+str(Nome)+"\' and Senha=\'"+str(Senha)+"\'"
+def loginCliente(cpf, Senha):
+    query = "select CPF from cliente where cpf=\'"+str(cpf)+"\' and Senha=\'"+str(Senha)+"\'"
     cursor.execute(query)
     cpf = cursor.fetchall()
-    if cpf == NULL:
+    if len(cpf) == 0:
         return 0
     else:
         return cpf
 
 def getReservasByCPFAndDia(CPF, dia):
-    query = "select Abertura, Fechamento, Nome_Atracao  from reserva \
+    query = "select Data, Abertura, Fechamento, Nome_Atracao, quicklinebd.ingresso.ID_Ingresso  from reserva \
             INNER JOIN ingresso on reserva.ID_Ingresso=ingresso.ID_Ingresso \
             INNER JOIN cliente on cliente.CPF=ingresso.CPF \
             INNER JOIN horario on horario.ID_Horario=reserva.ID_Horario \
@@ -105,26 +149,41 @@ def getReservasByCPFAndDia(CPF, dia):
     reservas = cursor.fetchall()
     return reservas
 
-def getIngressosByAtracao(Nome_Atracao):
-    query = "select * from reserva where Nome_Atracao=\'"+str(Nome_Atracao)+"\'"
+def getReservasByCPF(CPF):
+    query = "select Data, Abertura, Fechamento, Nome_Atracao, quicklinebd.ingresso.ID_Ingresso  from reserva \
+            INNER JOIN ingresso on reserva.ID_Ingresso=ingresso.ID_Ingresso \
+            INNER JOIN cliente on cliente.CPF=ingresso.CPF \
+            INNER JOIN horario on horario.ID_Horario=reserva.ID_Horario \
+            where ingresso.CPF=\'"+str(CPF)+"\'"
     cursor.execute(query)
-    ingressosVendidos = cursor.fetchall()
-    numIngressosVendidos = len(ingressosVendidos)
-    return numIngressosVendidos
+    reservas = cursor.fetchall()
+    return reservas
+
+def getOrderedReservasByAtracao(Atracao):
+    query = "select Data, Abertura, Fechamento, Nome_Atracao, quicklinebd.ingresso.ID_Ingresso from reserva \
+            INNER JOIN ingresso on reserva.ID_Ingresso=ingresso.ID_Ingresso \
+            INNER JOIN cliente on cliente.CPF=ingresso.CPF \
+            INNER JOIN horario on horario.ID_Horario=reserva.ID_Horario \
+            where Nome_Atracao = \'" + str(Atracao) + "\' \
+            order by Data"
+
+    cursor.execute(query)
+    reservas = cursor.fetchall()
+    return reservas
+
+def getIngressosByAtracao(Nome_Atracao):
+    query = "select Nome_Atracao, COUNT(*) As Total from reserva where Nome_Atracao=\'"+str(Nome_Atracao)+"\'"
+    cursor.execute(query)
+    numIngressosVendidos = cursor.fetchall()
+    # numIngressosVendidos = len(ingressosVendidos)
+    return numIngressosVendidos[0][1]
 
 def getTipoIngressoMaisCompradoByCPF(CPF):
-    query = "select * from ingresso where CPF=\'"+str(CPF)+"\' and ID_Tipo=\'"+str(1)+"\'"
+    query = "SELECT IF((select count(ID_Ingresso) from quicklinebd.ingresso where ID_Tipo=2 and cpf="+str(CPF)+")<(select count(ID_Ingresso) from quicklinebd.ingresso where ID_Tipo=1 and cpf="+str(CPF)+") \
+                , 'normal', IF((select count(ID_Ingresso) from quicklinebd.ingresso where ID_Tipo=2 and cpf="+str(CPF)+")=(select count(ID_Ingresso) from quicklinebd.ingresso where ID_Tipo=1 and cpf="+str(CPF)+"), 'igual', 'premium' )) as ingresso;"
     cursor.execute(query)
-    numIngressosNormal = len(cursor.fetchall())
-    query = "select * from ingresso where CPF=\'"+str(CPF)+"\' and ID_Tipo=\'"+str(2)+"\'"
-    cursor.execute(query)
-    numIngressosPremium = len(cursor.fetchall())
-    if numIngressosNormal > numIngressosPremium:
-        print("O cliente de CPF "+str(CPF)+" comprou mais ingressos do tipo normal.")
-    elif numIngressosNormal < numIngressosPremium:
-        print("O cliente de CPF "+str(CPF)+" comprou mais ingressos do tipo premium.")
-    else:
-        print("O cliente de CPF "+str(CPF)+" comprou a mesma quantia de ingressos dos dois tipos.")
+    resp = cursor.fetchall()
+    return resp[0][0]
 
 def getIngressosVendidosByTipo(ID_Tipo):
     query = "select count(*) from ingresso where ID_Tipo=\'"+str(ID_Tipo)+"\'"
@@ -132,11 +191,24 @@ def getIngressosVendidosByTipo(ID_Tipo):
     numIngressosVendidos = cursor.fetchall()[0][0]
     return numIngressosVendidos
 
-def getHorariosLotadosByAtracao(Nome_Atracao, Data):
-    query = "select * from reserva where Nome_Atracao=\'"+str(Nome_Atracao)+"\'"
+def getHorariosLotadosNoDia(Data):
+    query = "select quicklinebd.reserva.Nome_Atracao, Abertura, Fechamento, count(quicklinebd.reserva.ID_Ingresso) as ingressos, Lotacao from quicklinebd.reserva \
+                INNER JOIN quicklinebd.horario on quicklinebd.horario.ID_Horario=quicklinebd.reserva.ID_Horario \
+                INNER JOIN quicklinebd.ingresso on quicklinebd.reserva.ID_Ingresso=quicklinebd.ingresso.ID_Ingresso \
+                INNER JOIN quicklinebd.atracao on quicklinebd.reserva.Nome_Atracao=quicklinebd.atracao.Nome_Atracao \
+                where Data=\'"+str(Data)+"\' \
+                group by Abertura , quicklinebd.reserva.Nome_Atracao , Data \
+                having count(quicklinebd.reserva.ID_Ingresso)=Lotacao;"
     cursor.execute(query)
-    reservasTotais = cursor.fetchall()
-    # for reserva in reservasTotais (TODO)
+    return cursor.fetchall()
+
+def getNumIngressosPorMes(Ano):
+    query = "select month(STR_TO_DATE(Data, '%d/%m/%Y')) as mês, count(quicklinebd.reserva.ID_Ingresso) as qtd from quicklinebd.ingresso \
+                INNER JOIN quicklinebd.reserva on quicklinebd.reserva.ID_Ingresso=quicklinebd.ingresso.ID_Ingresso \
+                where year(STR_TO_DATE(Data, '%d/%m/%Y')) ="+str(Ano)+" \
+                group by month(STR_TO_DATE(Data, '%d/%m/%Y'));"
+    cursor.execute(query)
+    return cursor.fetchall()
 
 def main():
     print("BOT")
@@ -149,7 +221,12 @@ def main():
     # print(getHorarios())
     # print(getIngressosWithCPF(1))
     # print(getAtracoes())
-    print(getDispDeAtracao("Roda Gigante", "11/04/2022"))
+    # print(getDispDeAtracao("Roda Gigante", "11/04/2022"))
+    # print(getReservasByCPF(2))
+    # print(getIngressosPremiumWithCPF(1))
+    # alteraSenha("1234", "novaSenha123")
+    # getTipoIngressoMaisCompradoByCPF(321)
+    print(getAtracao("Roda Gigante"))
     print("EOT")
     return
 
